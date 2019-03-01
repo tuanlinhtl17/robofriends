@@ -1,42 +1,58 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import './App.css';
 import CardList from '../components/CardList';
 import SearchBox from '../components/SearchBox';
 import Scroll from '../components/Scroll';
 import ErrorBoundry from '../components/ErrorBoundry';
 
+import { setSearchField, requestRobots } from '../actions';
+
+const mapStateToProps = state => {
+  return {
+    searchField: state.searchRobots.searchField,
+    robots: state.requestRobots.robots,
+    pending: state.requestRobots.pending,
+    error: state.requestRobots.error
+  }
+}
+
+const mapDispatchToProps = dispatch => {
+  return {
+    onSearchChange: event => dispatch(setSearchField(event.target.value)),
+    onRequestRobot: () => dispatch(requestRobots())
+  }
+}
+
+var ws = new WebSocket('wss://echo.websocket.org');
+
 class App extends Component {
-  constructor() {
-    super();
-    this.state = {
-      robots: [],
-      searchfield: '',
-    }
-  }
-
   componentDidMount() {
-    fetch('https://jsonplaceholder.typicode.com/users')
-    .then(response => response.json())
-    .then(users => this.setState({ robots: users }))
-  }
+    this.props.onRequestRobot();
 
-  onSearchChange = (event) => {
-    this.setState({ searchfield: event.target.value });
+    ws.open = () => console.log('connected');
+
+    // ws.onmessage = event => console.log(event.data)
+
+    ws.onclose = () => {
+      console.log('disconnected');
+      this.setState({ ws: ws });
+    }
   }
   
   render() {
-    const { robots, searchfield } = this.state;
+    const { robots, pending, searchField, onSearchChange } = this.props;
     const filteredRobots = robots.filter(robot => {
-      return robot.name.toLowerCase().includes(searchfield.toLowerCase());
+      return robot.name.toLowerCase().includes(searchField.toLowerCase());
     });
-    if (robots.length === 0) {
+    if (pending) {
       return <h1>Loading...</h1>
     } else {
       return (
         <div className='tc'>
           <ErrorBoundry>
             <h1 className='f1'>RoboFriends</h1>
-            <SearchBox searchChange={ this.onSearchChange }/>
+            <SearchBox searchChange={ onSearchChange }/>
             <Scroll>
               <CardList robots={ filteredRobots } />
             </Scroll>
@@ -47,4 +63,4 @@ class App extends Component {
   }
 }
 
-export default App;
+export default connect(mapStateToProps, mapDispatchToProps)(App);

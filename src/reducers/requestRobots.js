@@ -11,6 +11,7 @@ const initialState = {
 }
 
 export const requestRobots = (state = initialState, action = {}) => {
+  console.log(action.type);
   switch(action.type) {
     case REQUEST_ON_PENDING:
       return { ...state, pending: action.payload }
